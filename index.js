@@ -28,7 +28,9 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     //await client.connect()
     const homeCollections = client.db('a12-contest').collection('homeCollections');
-   const participatedCollections = client.db('a12-contest').collection('participated');
+    const participatedCollections = client.db('a12-contest').collection('participated');
+
+    const addContestCollections = client.db('a12-contest').collection('addContestCollection');
 
 
 
@@ -48,6 +50,27 @@ app.get('/dashboard/participated', async(req,res) =>{
     res.send(result);
    })
 
+// add contest post and get
+app.post('/dashboard/addContest', async (req,res) =>{
+    const addContest = req.body ;
+    const result = await  addContestCollections.insertOne(addContest) ;
+   
+    res.send(result) ;
+
+  })
+
+  app.get('/dashboard/addContest', async(req,res) =>{
+    const cursor = addContestCollections.find();
+    const result = await cursor.toArray();
+    res.send(result);
+   })
+
+   // My Created Contest get::
+   app.get('/dashboard/createdContest', async(req,res) =>{
+    const cursor = addContestCollections.find();
+    const result = await cursor.toArray();
+    res.send(result);
+   })
 
 
 

@@ -12,6 +12,7 @@ app.use(express.json());
 
 
 
+  
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ttkt4y5.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -31,6 +32,8 @@ async function run() {
     const participatedCollections = client.db('a12-contest').collection('participated');
 
     const addContestCollections = client.db('a12-contest').collection('addContestCollection');
+
+    const submissionCollections = client.db('a12-contest').collection('submissionCollection');
 
 
 
@@ -71,6 +74,51 @@ app.post('/dashboard/addContest', async (req,res) =>{
     const result = await cursor.toArray();
     res.send(result);
    })
+
+// ...
+
+// submission post
+app.post('/dashboard/createdContest/:contestId', async (req, res) => {
+    const contestId = req.params.contestId;
+    const submissionData = req.body;
+  
+    try {
+      // Assuming 'submissionCollections' is the collection where you want to store submissions
+      const result = await submissionCollections.insertOne({
+        contestId: contestId,
+        submissionData: submissionData,
+      });
+  
+      res.json({ success: true, message: 'Submission successful', data: result.ops[0] });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+  
+  
+  // submission get
+  app.get('/dashboard/contestSubmittedPage/:contestId', async (req,res) =>{
+    const contestId = req.params.contestId  ;
+    const query = { _id: new ObjectId(contestId )};
+    const result = await submissionCollections.findOne(query) ;
+    res.send(result)
+   })
+  
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+
 
 
 

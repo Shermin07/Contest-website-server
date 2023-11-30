@@ -1,13 +1,28 @@
 const express = require('express');
 const cors = require('cors');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 require('dotenv').config() ;
 const app = express();
+const admin = require('firebase-admin');
 const port = process.env.PORT || 5000 ;
 
+// Initialize Firebase Admin
+admin.initializeApp({
+  credential: admin.credential.cert({
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  }),
+  databaseURL: process.env.FIREBASE_DATABASE_URL,
+})
+
 //middlewear
-app.use(cors());
-app.use(express.json());
+
+  app.use(cors());
+  app.use(express.json());
+
+ 
+  
 
 
 
@@ -28,12 +43,18 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     //await client.connect()
+
     const homeCollections = client.db('a12-contest').collection('homeCollections');
     const participatedCollections = client.db('a12-contest').collection('participated');
 
     const addContestCollections = client.db('a12-contest').collection('addContestCollection');
 
     const submissionCollections = client.db('a12-contest').collection('submissionCollection');
+
+    const userCollection = client.db('a12-contest').collection('users');
+
+    //const contestCollection = client.db('a12-contest').collection('contests');
+
 
 
 
@@ -75,7 +96,7 @@ app.post('/dashboard/addContest', async (req,res) =>{
     res.send(result);
    })
 
-// ...
+   
 
 // submission post
 app.post('/dashboard/createdContest/:contestId', async (req, res) => {
@@ -106,6 +127,118 @@ app.post('/dashboard/createdContest/:contestId', async (req, res) => {
    })
   
 
+  // admin
+ 
+app.get('/manageUsers', async (req, res) => {
+  try {
+   
+    const userRecords = await admin.auth().listUsers();
+    const users = userRecords.users.map(user => ({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName || '', 
+    }));
+
+    
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+
+
+
+// Admin user role
+app.post('/manageUsers/:userId', async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    // Assuming 'userCollection' is the MongoDB collection for users
+    const user = await userCollection.findOne({ uid: userId });
+
+    if (user) {
+      const newRole = user.role === 'admin' ? 'normal' : 'admin'; // Toggle the role
+
+      const result = await userCollection.updateOne(
+        { uid: userId },
+        { $set: { role: newRole } }
+      );
+
+      res.json({ success: true, message: 'User role toggled successfully', data: result });
+    } else {
+      res.status(404).json({ success: false, message: 'User not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+
+
+
+// manageContest
+
+
+app.get('/dashboard/manageContests', async (req, res) => {
+  try {
+    const cursor = addContestCollections.find();
+    const result = await cursor.toArray();
+    res.send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ManageContest  delete 
+app.delete('/dashboard/manageContests/:contestId', async (req, res) => {
+  const contestId = req.params.contestId;
+
+  try {
+    const result = await addContestCollections.deleteOne({ _id: new ObjectId(contestId) });
+
+    if (result.deletedCount === 1) {
+      res.json({ success: true, message: 'Contest deleted successfully' });
+    } else {
+      res.status(404).json({ success: false, message: 'Contest not found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// ManageContest confirm 
+app.post('/dashboard/manageContests/confirm/:contestId', async (req, res) => {
+  const contestId = req.params.contestId;
+
+ 
+  try {
+   
+    const result = await addContestCollections.updateOne(
+      { _id: new ObjectId(contestId) },
+      { $set: { status: 'confirmed' } }
+    );
+
+    res.json({ success: true, message: 'Contest confirmed successfully', data: result });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+
+
+
+
+
+
+  
+ 
   
   
 

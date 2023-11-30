@@ -53,7 +53,7 @@ async function run() {
 
     const userCollection = client.db('a12-contest').collection('users');
 
-    //const contestCollection = client.db('a12-contest').collection('contests');
+    const registrationCollection = client.db('a12-contest').collection('contestRegistrations');
 
 
 
@@ -73,6 +73,40 @@ app.get('/dashboard/participated', async(req,res) =>{
     const result = await cursor.toArray();
     res.send(result);
    })
+
+  
+
+// contest details
+
+
+// Endpoint to get all contests
+app.get('/dashboard/allContests', async (req, res) => {
+  try {
+    const cursor = addContestCollections.find();
+    const result = await cursor.toArray();
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Endpoint to get contest details
+app.get('/dashboard/contestDetails/:contestId', async (req, res) => {
+  const contestId = req.params.contestId;
+  try {
+    const contestDetails = await addContestCollections.findOne({ _id: new ObjectId(contestId) });
+    res.json(contestDetails);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+
+
+
+
 
 // add contest post and get
 app.post('/dashboard/addContest', async (req,res) =>{
@@ -231,6 +265,54 @@ app.post('/dashboard/manageContests/confirm/:contestId', async (req, res) => {
   }
 });
 
+
+
+
+
+//  registration
+app.post('/dashboard/contestDetails/:contestId/register', async (req, res) => {
+  const contestId = req.params.contestId;
+  const { userId } = req.body;
+
+  try {
+   
+    const existingRegistration = await registrationCollection.findOne({
+      contestId: new ObjectId(contestId),
+      userId,
+    });
+
+    if (existingRegistration) {
+      res.status(400).json({ success: false, message: 'User already registered' });
+      return;
+    }
+
+    //  'contestDetails' is the collection where you store contest details
+    const contestDetails = await addContestCollections.findOne({
+      _id: new ObjectId(contestId),
+      status: 'confirmed',
+    });
+
+    if (!contestDetails) {
+      res.status(404).json({ success: false, message: 'Contest not found or registration closed' });
+      return;
+    }
+
+    // Add the user to the contest registration collection
+    const registrationResult = await registrationCollection.insertOne({
+      contestId: new ObjectId(contestId),
+      userId,
+    });
+
+    res.json({
+      success: true,
+      message: 'User registered for the contest successfully',
+      data: registrationResult.ops[0],
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
 
 
 

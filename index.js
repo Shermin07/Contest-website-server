@@ -65,6 +65,8 @@ app.get('/home', async(req,res) =>{
     res.send(result);
    })
 
+ 
+
 
 //participated:
 
@@ -77,6 +79,19 @@ app.get('/dashboard/participated', async(req,res) =>{
   
 
 // contest details
+app.get("/home/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) };
+
+    const result = await homeCollections.findOne(query);
+    res.send(result)
+
+  } catch (error) {
+    console.log(error.message);
+  }
+})
+
 
 
 // Endpoint to get all contests
@@ -315,32 +330,9 @@ app.post('/dashboard/contestDetails/:contestId/register', async (req, res) => {
 });
 
 
-
-
-
-
-  
- 
-  
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // Send a ping to confirm a successful connection
+ // Send a ping to confirm a successful connection
    // await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+   // console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
    // await client.close();
